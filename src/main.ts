@@ -69,7 +69,7 @@ export default class VocalogPlugin extends Plugin {
 		this.addSettingTab(new VocalogSettingTab(this.app, this));
 
 		// 添加 Ribbon 图标按钮（左侧边栏）
-		this.addRibbonIcon('microphone', 'Vocalog: generate audio notes', async (evt: MouseEvent) => {
+		this.addRibbonIcon('microphone', 'Vocalog: generate audio notes', async () => {
 			await this.generateAudioNotes();
 		});
 

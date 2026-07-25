@@ -1,6 +1,6 @@
 {
   "name": "vocalog",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Obsidian plugin for audio transcription and AI-powered note generation",
   "main": "main.js",
   "scripts": {

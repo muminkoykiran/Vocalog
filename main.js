@@ -395,7 +395,7 @@ var CalendarModal = class extends import_obsidian6.Modal {
       this.currentMonth.subtract(1, "month");
       this.renderCalendar();
     };
-    const monthLabel = nav.createEl("span", {
+    const monthLabel = nav.createSpan({
       text: this.currentMonth.format("YYYY\u5E74 MM\u6708"),
       cls: "calendar-month-label"
     });
@@ -408,14 +408,14 @@ var CalendarModal = class extends import_obsidian6.Modal {
   }
   renderCalendar() {
     this.calendarEl.empty();
-    const monthLabel = document.getElementById("month-label");
+    const monthLabel = activeDocument.getElementById("month-label");
     if (monthLabel) {
       monthLabel.textContent = this.currentMonth.format("YYYY\u5E74 MM\u6708");
     }
     const weekdays = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
     const headerRow = this.calendarEl.createDiv({ cls: "calendar-weekdays" });
     weekdays.forEach((day) => {
-      headerRow.createEl("div", { text: day, cls: "calendar-weekday" });
+      headerRow.createDiv({ text: day, cls: "calendar-weekday" });
     });
     const daysGrid = this.calendarEl.createDiv({ cls: "calendar-days" });
     const startOfMonth = this.currentMonth.clone().startOf("month");
@@ -428,7 +428,7 @@ var CalendarModal = class extends import_obsidian6.Modal {
     let currentDate = startDate.clone();
     while (currentDate.isSameOrBefore(endDate, "day")) {
       const dateStr = currentDate.format("YYYY-MM-DD");
-      const dayEl = daysGrid.createEl("div", { cls: "calendar-day" });
+      const dayEl = daysGrid.createDiv({ cls: "calendar-day" });
       if (!currentDate.isSame(this.currentMonth, "month")) {
         dayEl.addClass("other-month");
       }
@@ -441,7 +441,7 @@ var CalendarModal = class extends import_obsidian6.Modal {
       if (currentDate.isAfter((0, import_obsidian6.moment)(), "day")) {
         dayEl.addClass("future");
       }
-      dayEl.createEl("span", { text: currentDate.format("D") });
+      dayEl.createSpan({ text: currentDate.format("D") });
       dayEl.onclick = () => {
         if (this.selectedDates.has(dateStr)) {
           this.selectedDates.delete(dateStr);
@@ -455,7 +455,7 @@ var CalendarModal = class extends import_obsidian6.Modal {
     }
   }
   updateGenerateButton() {
-    const btn = document.getElementById("generate-btn");
+    const btn = activeDocument.getElementById("generate-btn");
     if (btn) {
       btn.textContent = `\u751F\u6210 (${this.selectedDates.size})`;
     }
@@ -533,7 +533,7 @@ var VocalogPlugin = class extends import_obsidian7.Plugin {
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new VocalogSettingTab(this.app, this));
-    this.addRibbonIcon("microphone", "Vocalog: generate audio notes", async (evt) => {
+    this.addRibbonIcon("microphone", "Vocalog: generate audio notes", async () => {
       await this.generateAudioNotes();
     });
     this.addCommand({

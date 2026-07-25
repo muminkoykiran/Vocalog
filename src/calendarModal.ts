@@ -1,5 +1,7 @@
 import { App, Modal, moment } from 'obsidian';
 
+declare const activeDocument: Document;
+
 export class CalendarModal extends Modal {
 	selectedDates: Set<string>;
 	currentMonth: moment.Moment;
@@ -85,7 +87,7 @@ export class CalendarModal extends Modal {
 			this.renderCalendar();
 		};
 
-		const monthLabel = nav.createEl('span', {
+		const monthLabel = nav.createSpan({
 			text: this.currentMonth.format('YYYY年 MM月'),
 			cls: 'calendar-month-label'
 		});
@@ -102,7 +104,7 @@ export class CalendarModal extends Modal {
 		this.calendarEl.empty();
 
 		// 更新月份标签
-		const monthLabel = document.getElementById('month-label');
+		const monthLabel = activeDocument.getElementById('month-label');
 		if (monthLabel) {
 			monthLabel.textContent = this.currentMonth.format('YYYY年 MM月');
 		}
@@ -111,7 +113,7 @@ export class CalendarModal extends Modal {
 		const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 		const headerRow = this.calendarEl.createDiv({ cls: 'calendar-weekdays' });
 		weekdays.forEach(day => {
-			headerRow.createEl('div', { text: day, cls: 'calendar-weekday' });
+			headerRow.createDiv({ text: day, cls: 'calendar-weekday' });
 		});
 
 		// 日期网格
@@ -134,7 +136,7 @@ export class CalendarModal extends Modal {
 
 		while (currentDate.isSameOrBefore(endDate, 'day')) {
 			const dateStr = currentDate.format('YYYY-MM-DD');
-			const dayEl = daysGrid.createEl('div', { cls: 'calendar-day' });
+			const dayEl = daysGrid.createDiv({ cls: 'calendar-day' });
 
 			// 样式类
 			if (!currentDate.isSame(this.currentMonth, 'month')) {
@@ -150,7 +152,7 @@ export class CalendarModal extends Modal {
 				dayEl.addClass('future');
 			}
 
-			dayEl.createEl('span', { text: currentDate.format('D') });
+			dayEl.createSpan({ text: currentDate.format('D') });
 
 			// 点击事件
 			dayEl.onclick = () => {
@@ -168,7 +170,7 @@ export class CalendarModal extends Modal {
 	}
 
 	updateGenerateButton() {
-		const btn = document.getElementById('generate-btn');
+		const btn = activeDocument.getElementById('generate-btn');
 		if (btn) {
 			btn.textContent = `生成 (${this.selectedDates.size})`;
 		}
