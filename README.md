@@ -68,6 +68,15 @@ This plugin works with OpenAI-compatible APIs:
 - Compatible with OpenAI Chat Completion API format
 - Tested with: OpenAI GPT models, DeepSeek, other OpenAI-compatible services
 
+## Network and Data Use
+
+Vocalog only sends data when you run a transcription or summarization command.
+
+- Audio files you choose to process are sent to the configured speech-to-text API endpoint.
+- Generated transcripts are sent to the configured AI summarization API endpoint.
+- API keys are stored locally in this plugin's Obsidian settings data.
+- Vocalog does not collect analytics, telemetry, or tracking data.
+
 ## License
 
 MIT

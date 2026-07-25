@@ -68,6 +68,15 @@ Obsidian 插件，自动进行音频转录并生成 AI 笔记。
 - 兼容 OpenAI Chat Completion API 格式
 - 已测试：OpenAI GPT 系列、DeepSeek 及其他 OpenAI 兼容服务
 
+## 网络与数据使用
+
+Vocalog 只会在你运行转录或摘要命令时发送数据。
+
+- 你选择处理的音频文件会发送到已配置的语音转文字 API 端点。
+- 生成的转录文本会发送到已配置的 AI 摘要 API 端点。
+- API Key 保存在本插件的 Obsidian 本地设置数据中。
+- Vocalog 不收集分析、遥测或追踪数据。
+
 ## 许可证
 
 MIT
