@@ -45,9 +45,18 @@ export async function writeToJournal(
 	// 4. 读取现有内容
 	let existingContent = await vault.read(dailyNote);
 
-	// 5. 追加新内容到文件末尾
-	const newContent = existingContent.trimEnd() + '\n\n' + content + '\n';
+	// 5. 更新 frontmatter updated 字段（如果存在）
+	const nowIso = moment().format('YYYY-MM-DDTHH:mm');
+	if (existingContent.includes('updated:')) {
+		existingContent = existingContent.replace(/updated:\s*["'][^"']*["']/, `updated: "${nowIso}"`);
+	}
 
-	// 6. 写入文件
+	// 6. 追加新内容到文件末尾
+	const trimmed = existingContent.trim();
+	const newContent = trimmed.length > 0
+		? existingContent.trimEnd() + '\n\n' + content + '\n'
+		: content + '\n';
+
+	// 7. 写入文件
 	await vault.modify(dailyNote, newContent);
 }
