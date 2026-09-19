@@ -1,4 +1,4 @@
-import { Plugin, Notice, TFile, Menu, moment } from 'obsidian';
+import { Plugin, Notice, TFile, Menu, moment, addIcon } from 'obsidian';
 import { VocalogSettingTab, DEFAULT_SETTINGS, VocalogSettings } from './settings';
 import { getTodayAudioFiles, getAudioFilesByDate } from './fileRetrieval';
 import { transcribeBatch } from './transcription';
@@ -58,8 +58,14 @@ function normalizeSettings(data: unknown): VocalogSettings {
 	return settings;
 }
 
+const VOCALOG_AI_MIC_ICON = `<rect x="28" y="14" width="28" height="38" rx="14" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><line x1="28" y1="33" x2="56" y2="33" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M 16 38 V 48 C 16 63.4 28.5 76 42 76 C 55.5 76 68 63.4 68 48 V 38" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><line x1="42" y1="76" x2="42" y2="90" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><line x1="26" y1="90" x2="58" y2="90" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><path d="M 78 8 Q 78 24 94 24 Q 78 24 78 40 Q 78 24 62 24 Q 78 24 78 8 Z" fill="currentColor" stroke="none"/><path d="M 86 47 Q 86 56 95 56 Q 86 56 86 65 Q 86 56 77 56 Q 86 56 86 47 Z" fill="currentColor" stroke="none"/><path d="M 8 36 C 4 41 4 49 8 54" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`;
+
 export default class VocalogPlugin extends Plugin {
 	settings: VocalogSettings;
+	private mediaRecorder: MediaRecorder | null = null;
+	private recordedChunks: BlobPart[] = [];
+	private recordingNotice: Notice | null = null;
+	private ribbonIconEl: HTMLElement | null = null;
 
 	async onload() {
 		// 加载设置
@@ -68,9 +74,19 @@ export default class VocalogPlugin extends Plugin {
 		// 添加设置页面
 		this.addSettingTab(new VocalogSettingTab(this.app, this));
 
-		// 添加 Ribbon 图标按钮（左侧边栏）
-		this.addRibbonIcon('microphone', 'Vocalog: generate audio notes', async () => {
-			await this.generateAudioNotes();
+		// 注册自定义 AI 麦克风图标
+		addIcon('vocalog-ai-mic', VOCALOG_AI_MIC_ICON);
+
+		// 添加 Ribbon 图标按钮（左侧边栏）- 点击开始/停止实时录音
+		this.ribbonIconEl = this.addRibbonIcon('vocalog-ai-mic', 'Vocalog: start / stop live recording', async () => {
+			await this.toggleRecording();
+		});
+
+		// 注册命令：开始 / 停止实时录音
+		this.addCommand({
+			id: 'toggle-recording',
+			name: 'Start / stop live audio recording',
+			callback: () => void this.toggleRecording()
 		});
 
 		// 注册命令：处理今日音频
@@ -257,7 +273,7 @@ export default class VocalogPlugin extends Plugin {
 	}
 
 	async processAudioFiles(files: TFile[], notice: Notice, targetDate?: moment.Moment) {
-		notice.setMessage(`Found ${files.length} audio files. Transcribing...`);
+		notice.setMessage(`Found ${files.length} audio file(s). Transcribing...`);
 
 		// 步骤2: 批量转录（文档第5节步骤1）
 		const transcripts = await transcribeBatch(
@@ -269,18 +285,23 @@ export default class VocalogPlugin extends Plugin {
 
 		// 步骤3: LLM 总结（文档第5节步骤3）
 		notice.setMessage('Generating summary with AI...');
-		let finalContent: string;
+		let summaryContent: string;
 
 		try {
-			finalContent = await summarizeTranscripts(transcripts, this.settings);
+			summaryContent = await summarizeTranscripts(transcripts, this.settings);
 		} catch (error) {
 			// 错误处理：备份原始文本（文档第8节）
 			console.error('LLM summarization failed:', error);
-			finalContent = transcripts
-				.map(t => `[${t.time}] ${t.text}`)
-				.join('\n\n');
-			finalContent = '⚠️ AI Summary Failed - Raw Transcripts:\n\n' + finalContent;
+			summaryContent = '⚠️ AI Summary Failed.';
 		}
+
+		// 原始文本折叠块（保留原始文字记录）
+		const rawTranscriptItems = transcripts
+			.map(t => `- **[${t.time}]** ${t.text}`)
+			.join('\n');
+		const rawTranscriptsBlock = `<details>\n<summary>📝 Raw Transcripts (${transcripts.length} recording${transcripts.length > 1 ? 's' : ''})</summary>\n\n${rawTranscriptItems}\n\n</details>`;
+
+		let finalContent = `${summaryContent}\n\n${rawTranscriptsBlock}`;
 
 		// 添加音频源文件链接
 		const audioLinks = this.generateAudioLinks(files);
@@ -294,6 +315,92 @@ export default class VocalogPlugin extends Plugin {
 
 		notice.hide();
 		new Notice('Vocalog generated successfully!');
+	}
+
+	async toggleRecording() {
+		if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+			this.mediaRecorder.stop();
+			return;
+		}
+
+		let stream: MediaStream;
+		try {
+			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		} catch (err) {
+			new Notice('Microphone access denied: ' + (err instanceof Error ? err.message : String(err)));
+			return;
+		}
+
+		this.recordedChunks = [];
+		this.mediaRecorder = new MediaRecorder(stream);
+
+		this.mediaRecorder.ondataavailable = (e: BlobEvent) => {
+			if (e.data && e.data.size > 0) {
+				this.recordedChunks.push(e.data);
+			}
+		};
+
+		if (this.recordingNotice) {
+			this.recordingNotice.hide();
+		}
+
+		if (this.ribbonIconEl) {
+			this.ribbonIconEl.addClass('vocalog-recording-active');
+			this.ribbonIconEl.setAttribute('aria-label', 'Stop recording');
+		}
+
+		this.recordingNotice = new Notice('Recording audio. Click the microphone icon to stop.', 0);
+
+		this.mediaRecorder.onstop = async () => {
+			stream.getTracks().forEach((track) => track.stop());
+
+			if (this.ribbonIconEl) {
+				this.ribbonIconEl.removeClass('vocalog-recording-active');
+				this.ribbonIconEl.setAttribute('aria-label', 'Vocalog: start / stop live recording');
+			}
+
+			if (this.recordingNotice) {
+				this.recordingNotice.hide();
+				this.recordingNotice = null;
+			}
+
+			const mimeType = (this.mediaRecorder && this.mediaRecorder.mimeType) || 'audio/webm';
+			const blob = new Blob(this.recordedChunks, { type: mimeType });
+			const ext = mimeType.includes('mp4') || mimeType.includes('m4a') ? 'm4a' : 'webm';
+			const now = moment();
+			const fileName = `Recording-${now.format('YYYY-MM-DD-HHmmss')}.${ext}`;
+			const folderPath = this.settings.audioFolder || 'attachments';
+
+			if (!this.app.vault.getAbstractFileByPath(folderPath)) {
+				await this.app.vault.createFolder(folderPath).catch(() => {});
+			}
+
+			const filePath = `${folderPath}/${fileName}`;
+			const arrayBuffer = await blob.arrayBuffer();
+			const tFile = await this.app.vault.createBinary(filePath, arrayBuffer);
+
+			new Notice(`Recording saved (${fileName}). Processing with AI...`, 3000);
+			const notice = new Notice('Transcribing and summarizing audio...', 0);
+			await this.processAudioFiles([tFile], notice, now);
+
+			this.mediaRecorder = null;
+			this.recordedChunks = [];
+		};
+
+		this.mediaRecorder.start();
+	}
+
+	onunload() {
+		if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+			this.mediaRecorder.stop();
+		}
+		if (this.ribbonIconEl) {
+			this.ribbonIconEl.removeClass('vocalog-recording-active');
+		}
+		if (this.recordingNotice) {
+			this.recordingNotice.hide();
+			this.recordingNotice = null;
+		}
 	}
 
 	generateAudioLinks(files: TFile[]): string {

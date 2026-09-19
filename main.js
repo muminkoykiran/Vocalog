@@ -328,7 +328,12 @@ async function writeToJournal(content, settings, vault, targetDate) {
     throw new Error("Daily note is not a file");
   }
   let existingContent = await vault.read(dailyNote);
-  const newContent = existingContent.trimEnd() + "\n\n" + content + "\n";
+  const nowIso = (0, import_obsidian5.moment)().format("YYYY-MM-DDTHH:mm");
+  if (existingContent.includes("updated:")) {
+    existingContent = existingContent.replace(/updated:\s*["'][^"']*["']/, `updated: "${nowIso}"`);
+  }
+  const trimmed = existingContent.trim();
+  const newContent = trimmed.length > 0 ? existingContent.trimEnd() + "\n\n" + content + "\n" : content + "\n";
   await vault.modify(dailyNote, newContent);
 }
 
@@ -339,18 +344,17 @@ var CalendarModal = class extends import_obsidian6.Modal {
     super(app);
     this.onSubmit = onSubmit;
     this.selectedDates = /* @__PURE__ */ new Set();
-    import_obsidian6.moment.locale("zh-cn");
     this.currentMonth = (0, import_obsidian6.moment)().startOf("month");
   }
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vocalog-calendar-modal");
-    contentEl.createEl("h2", { text: "\u9009\u62E9\u65E5\u671F" });
+    contentEl.createEl("h2", { text: "Select dates" });
     this.createMonthNavigation(contentEl);
     this.calendarEl = contentEl.createDiv({ cls: "calendar-container" });
     this.renderCalendar();
-    contentEl.createEl("h3", { text: "\u5FEB\u901F\u9009\u62E9" });
+    contentEl.createEl("h3", { text: "Quick options" });
     const quickButtons = contentEl.createDiv({ cls: "date-quick-options" });
     const addButton = (text, dates) => {
       const btn = quickButtons.createEl("button", { text });
@@ -360,11 +364,11 @@ var CalendarModal = class extends import_obsidian6.Modal {
         this.updateGenerateButton();
       };
     };
-    addButton("\u4ECA\u5929", [(0, import_obsidian6.moment)().format("YYYY-MM-DD")]);
-    addButton("\u6628\u5929", [(0, import_obsidian6.moment)().subtract(1, "day").format("YYYY-MM-DD")]);
-    addButton("\u672C\u5468", this.getWeekDates((0, import_obsidian6.moment)()));
-    addButton("\u6700\u8FD17\u5929", this.getLast7Days());
-    const clearBtn = quickButtons.createEl("button", { text: "\u6E05\u7A7A", cls: "mod-warning" });
+    addButton("Today", [(0, import_obsidian6.moment)().format("YYYY-MM-DD")]);
+    addButton("Yesterday", [(0, import_obsidian6.moment)().subtract(1, "day").format("YYYY-MM-DD")]);
+    addButton("This week", this.getWeekDates((0, import_obsidian6.moment)()));
+    addButton("Last 7 days", this.getLast7Days());
+    const clearBtn = quickButtons.createEl("button", { text: "Clear", cls: "mod-warning" });
     clearBtn.onclick = () => {
       this.selectedDates.clear();
       this.renderCalendar();
@@ -372,7 +376,7 @@ var CalendarModal = class extends import_obsidian6.Modal {
     };
     const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
     const generateBtn = buttonContainer.createEl("button", {
-      text: `\u751F\u6210 (${this.selectedDates.size})`,
+      text: `Generate notes (${this.selectedDates.size})`,
       cls: "mod-cta"
     });
     generateBtn.setAttribute("id", "generate-btn");
@@ -383,24 +387,24 @@ var CalendarModal = class extends import_obsidian6.Modal {
       this.close();
       this.submit();
     };
-    const cancelBtn = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.onclick = () => {
       this.close();
     };
   }
   createMonthNavigation(containerEl) {
     const nav = containerEl.createDiv({ cls: "calendar-nav" });
-    const prevBtn = nav.createEl("button", { text: "\u25C0 \u4E0A\u6708", cls: "calendar-nav-btn" });
+    const prevBtn = nav.createEl("button", { text: "Previous", cls: "calendar-nav-btn" });
     prevBtn.onclick = () => {
       this.currentMonth.subtract(1, "month");
       this.renderCalendar();
     };
     const monthLabel = nav.createSpan({
-      text: this.currentMonth.format("YYYY\u5E74 MM\u6708"),
+      text: this.currentMonth.format("MMMM YYYY"),
       cls: "calendar-month-label"
     });
     monthLabel.setAttribute("id", "month-label");
-    const nextBtn = nav.createEl("button", { text: "\u4E0B\u6708 \u25B6", cls: "calendar-nav-btn" });
+    const nextBtn = nav.createEl("button", { text: "Next", cls: "calendar-nav-btn" });
     nextBtn.onclick = () => {
       this.currentMonth.add(1, "month");
       this.renderCalendar();
@@ -410,9 +414,9 @@ var CalendarModal = class extends import_obsidian6.Modal {
     this.calendarEl.empty();
     const monthLabel = activeDocument.getElementById("month-label");
     if (monthLabel) {
-      monthLabel.textContent = this.currentMonth.format("YYYY\u5E74 MM\u6708");
+      monthLabel.textContent = this.currentMonth.format("MMMM YYYY");
     }
-    const weekdays = ["\u65E5", "\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D"];
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const headerRow = this.calendarEl.createDiv({ cls: "calendar-weekdays" });
     weekdays.forEach((day) => {
       headerRow.createDiv({ text: day, cls: "calendar-weekday" });
@@ -457,7 +461,7 @@ var CalendarModal = class extends import_obsidian6.Modal {
   updateGenerateButton() {
     const btn = activeDocument.getElementById("generate-btn");
     if (btn) {
-      btn.textContent = `\u751F\u6210 (${this.selectedDates.size})`;
+      btn.textContent = `Generate notes (${this.selectedDates.size})`;
     }
   }
   getWeekDates(date) {
@@ -529,12 +533,26 @@ function normalizeSettings(data) {
   }
   return settings;
 }
+var VOCALOG_AI_MIC_ICON = `<rect x="28" y="14" width="28" height="38" rx="14" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><line x1="28" y1="33" x2="56" y2="33" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M 16 38 V 48 C 16 63.4 28.5 76 42 76 C 55.5 76 68 63.4 68 48 V 38" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><line x1="42" y1="76" x2="42" y2="90" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><line x1="26" y1="90" x2="58" y2="90" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><path d="M 78 8 Q 78 24 94 24 Q 78 24 78 40 Q 78 24 62 24 Q 78 24 78 8 Z" fill="currentColor" stroke="none"/><path d="M 86 47 Q 86 56 95 56 Q 86 56 86 65 Q 86 56 77 56 Q 86 56 86 47 Z" fill="currentColor" stroke="none"/><path d="M 8 36 C 4 41 4 49 8 54" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`;
 var VocalogPlugin = class extends import_obsidian7.Plugin {
+  constructor() {
+    super(...arguments);
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
+    this.recordingNotice = null;
+    this.ribbonIconEl = null;
+  }
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new VocalogSettingTab(this.app, this));
-    this.addRibbonIcon("microphone", "Vocalog: generate audio notes", async () => {
-      await this.generateAudioNotes();
+    (0, import_obsidian7.addIcon)("vocalog-ai-mic", VOCALOG_AI_MIC_ICON);
+    this.ribbonIconEl = this.addRibbonIcon("vocalog-ai-mic", "Vocalog: start / stop live recording", async () => {
+      await this.toggleRecording();
+    });
+    this.addCommand({
+      id: "toggle-recording",
+      name: "Start / stop live audio recording",
+      callback: () => void this.toggleRecording()
     });
     this.addCommand({
       id: "generate-audio-notes",
@@ -679,7 +697,7 @@ var VocalogPlugin = class extends import_obsidian7.Plugin {
     }
   }
   async processAudioFiles(files, notice, targetDate) {
-    notice.setMessage(`Found ${files.length} audio files. Transcribing...`);
+    notice.setMessage(`Found ${files.length} audio file(s). Transcribing...`);
     const transcripts = await transcribeBatch(
       files,
       this.app.vault,
@@ -687,14 +705,23 @@ var VocalogPlugin = class extends import_obsidian7.Plugin {
       (msg) => notice.setMessage(msg)
     );
     notice.setMessage("Generating summary with AI...");
-    let finalContent;
+    let summaryContent;
     try {
-      finalContent = await summarizeTranscripts(transcripts, this.settings);
+      summaryContent = await summarizeTranscripts(transcripts, this.settings);
     } catch (error) {
       console.error("LLM summarization failed:", error);
-      finalContent = transcripts.map((t) => `[${t.time}] ${t.text}`).join("\n\n");
-      finalContent = "\u26A0\uFE0F AI Summary Failed - Raw Transcripts:\n\n" + finalContent;
+      summaryContent = "\u26A0\uFE0F AI Summary Failed.";
     }
+    const rawTranscriptItems = transcripts.map((t) => `- **[${t.time}]** ${t.text}`).join("\n");
+    const rawTranscriptsBlock = `<details>
+<summary>\u{1F4DD} Raw Transcripts (${transcripts.length} recording${transcripts.length > 1 ? "s" : ""})</summary>
+
+${rawTranscriptItems}
+
+</details>`;
+    let finalContent = `${summaryContent}
+
+${rawTranscriptsBlock}`;
     const audioLinks = this.generateAudioLinks(files);
     if (audioLinks) {
       finalContent += "\n\n---\n\n" + audioLinks;
@@ -703,6 +730,76 @@ var VocalogPlugin = class extends import_obsidian7.Plugin {
     await writeToJournal(finalContent, this.settings, this.app.vault, targetDate);
     notice.hide();
     new import_obsidian7.Notice("Vocalog generated successfully!");
+  }
+  async toggleRecording() {
+    if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
+      this.mediaRecorder.stop();
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      new import_obsidian7.Notice("Microphone access denied: " + (err instanceof Error ? err.message : String(err)));
+      return;
+    }
+    this.recordedChunks = [];
+    this.mediaRecorder = new MediaRecorder(stream);
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        this.recordedChunks.push(e.data);
+      }
+    };
+    if (this.recordingNotice) {
+      this.recordingNotice.hide();
+    }
+    if (this.ribbonIconEl) {
+      this.ribbonIconEl.addClass("vocalog-recording-active");
+      this.ribbonIconEl.setAttribute("aria-label", "Stop recording");
+    }
+    this.recordingNotice = new import_obsidian7.Notice("Recording audio. Click the microphone icon to stop.", 0);
+    this.mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      if (this.ribbonIconEl) {
+        this.ribbonIconEl.removeClass("vocalog-recording-active");
+        this.ribbonIconEl.setAttribute("aria-label", "Vocalog: start / stop live recording");
+      }
+      if (this.recordingNotice) {
+        this.recordingNotice.hide();
+        this.recordingNotice = null;
+      }
+      const mimeType = this.mediaRecorder && this.mediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(this.recordedChunks, { type: mimeType });
+      const ext = mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "webm";
+      const now = (0, import_obsidian7.moment)();
+      const fileName = `Recording-${now.format("YYYY-MM-DD-HHmmss")}.${ext}`;
+      const folderPath = this.settings.audioFolder || "attachments";
+      if (!this.app.vault.getAbstractFileByPath(folderPath)) {
+        await this.app.vault.createFolder(folderPath).catch(() => {
+        });
+      }
+      const filePath = `${folderPath}/${fileName}`;
+      const arrayBuffer = await blob.arrayBuffer();
+      const tFile = await this.app.vault.createBinary(filePath, arrayBuffer);
+      new import_obsidian7.Notice(`Recording saved (${fileName}). Processing with AI...`, 3e3);
+      const notice = new import_obsidian7.Notice("Transcribing and summarizing audio...", 0);
+      await this.processAudioFiles([tFile], notice, now);
+      this.mediaRecorder = null;
+      this.recordedChunks = [];
+    };
+    this.mediaRecorder.start();
+  }
+  onunload() {
+    if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
+      this.mediaRecorder.stop();
+    }
+    if (this.ribbonIconEl) {
+      this.ribbonIconEl.removeClass("vocalog-recording-active");
+    }
+    if (this.recordingNotice) {
+      this.recordingNotice.hide();
+      this.recordingNotice = null;
+    }
   }
   generateAudioLinks(files) {
     if (files.length === 0)
