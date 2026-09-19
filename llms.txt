@@ -1,0 +1,21 @@
+# Vocalog
+
+> Vocalog is an open-source Obsidian plugin for live voice recording, ultra-fast Whisper speech-to-text transcription, and AI-powered note generation into daily journals.
+
+## Overview
+Vocalog transforms spoken thoughts and voice recordings into structured Markdown daily notes within Obsidian. It records audio directly from the user's microphone with pulsing visual recording indicators, transcribes the voice using OpenAI-compatible Whisper APIs (such as Groq, OpenAI, or local Whisper), summarizes key insights/todos with LLMs (DeepSeek, GPT-4o, Claude, Ollama), and preserves raw transcripts in expandable blocks.
+
+## Core Capabilities
+- In-App Live Microphone Recording: Real-time recording via Web MediaRecorder with pulsing visual feedback and custom AI mic icon.
+- Automated Speech-to-Text (STT): Compatible with Groq Whisper, OpenAI Whisper, LocalAI, and self-hosted Whisper endpoints.
+- Structured LLM Summaries: Extracts actionable tasks, insights, and summaries into daily notes using custom system prompts.
+- Raw Transcript Preservation: Never lose spoken words; transcripts are appended in collapsible details blocks.
+- Batch & Calendar Processing: Process past voice notes by date range or interactive calendar interface.
+- 100% Private & Local: Zero analytics, zero telemetry; API keys stored strictly in Obsidian local settings.
+
+## Repository Information
+- Repository: https://github.com/muminkoykiran/Vocalog
+- Maintainer: https://github.com/muminkoykiran
+- License: MIT
+- Compatibility: Obsidian v1.4.0+ (Desktop & Mobile)
+- Topics: obsidian, obsidian-plugin, ai, whisper, speech-to-text, voice-notes, transcription, llm, voice-recorder, audio-journal, groq, deepseek, openai, pkm, second-brain, daily-notes

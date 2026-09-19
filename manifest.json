@@ -3,8 +3,8 @@
 	"name": "Vocalog",
 	"version": "1.0.2",
 	"minAppVersion": "1.4.0",
-	"description": "Automatically transcribe audio recordings and generate structured daily notes with AI summaries.",
-	"author": "LinkX",
-	"authorUrl": "https://github.com/reflector-li",
+	"description": "Live voice recording, Whisper speech-to-text, and AI-powered structured daily notes for Obsidian.",
+	"author": "Mümin Köykıran",
+	"authorUrl": "https://github.com/muminkoykiran",
 	"isDesktopOnly": false
 }
